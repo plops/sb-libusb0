@@ -6,12 +6,14 @@
 ;;; then the stuff we're looking for
 ((:structure device-descriptor 
  	     ("struct usb_device_descriptor"
- 	      (integer id-vendor "u_int16_t" "idVendor")
- 	      (integer id-product "u_int16_t" "idProduct")))
+ 	      (unsigned id-vendor "u_int16_t" "idVendor")
+ 	      (unsigned id-product "u_int16_t" "idProduct")))
 
  (:structure device
  	     ("struct usb_device"
 	      ((sb-alien:* (struct device)) next "struct usb_device *" "next")
+	      (device-descriptor descriptor
+	       "struct usb_device_descriptor" "descriptor")
 	      #+nil ((sb-alien:* (struct bus)) bus "struct usb_bus *" "bus")))
 
  (:structure bus 

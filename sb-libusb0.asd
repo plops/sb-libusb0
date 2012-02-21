@@ -12,6 +12,5 @@
 	       (sb-grovel:grovel-constants-file "constants"
 				      :package :sb-libusb0-internal
 				      :depends-on ("internal" "packages"))
-	      ; (:file "libusb0-internal" :depends-on ("packages"))
 	      (:file "libusb0-ffi" :depends-on ("internal" "packages"))
 	       ))

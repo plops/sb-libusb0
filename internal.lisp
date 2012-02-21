@@ -3,9 +3,6 @@
 (sb-alien:define-alien-type handle int)
 (sb-alien:define-alien-type phandle (sb-alien:* handle))
 
-(sb-alien:define-alien-type ps-device
-    (sb-alien:* (sb-alien:struct device)))
-
 (defvar *libusb0-initialized* nil)
 (defvar *libusb0-shared-object* nil)
 
@@ -46,22 +43,18 @@
 ;; 			 'cl-usb::devices)
 
 
-;; (defun get-devices* (bus)
-;;   (ensure-libusb-initialized)
-;;   (loop with dev = (cffi:foreign-slot-value bus
-;; 					    'cl-usb::usb_bus
-;; 					    'cl-usb::devices)
-;;        until (cffi:null-pointer-p dev)
-;;        collect dev
-;;        do (setf dev (cffi:foreign-slot-value dev
-;; 					     'cl-usb::usb_device
-;; 					     'cl-usb::next))))
+(defun get-devices* (bus)
+  (ensure-libusb0-initialized)
+  (loop with dev = (bus-devices bus)
+       until (sb-alien:null-alien dev)
+       collect dev
+       do (setf dev (device-next dev))))
 
-;; (defun get-devices (&optional (bus-or-list (get-busses)))
-;;   (if (listp bus-or-list)
-;;       (loop for bus in bus-or-list
-;; 	   nconcing (get-devices* bus))
-;;       (get-devices* bus-or-list)))
+(defun get-devices (&optional (bus-or-list (get-busses)))
+  (if (listp bus-or-list)
+      (loop for bus in bus-or-list
+	   nconcing (get-devices* bus))
+      (get-devices* bus-or-list)))
 
 ;; #+nil
 ;; (get-devices (car (cdr (get-busses))))
@@ -70,28 +63,26 @@
 ;; (get-devices* 
 ;;  (car (cdr (get-busses))))
 
-;; (defun device-get-descriptor (dev)
-;;   (cffi:foreign-slot-value dev 
-;; 			   'cl-usb::usb_device
-;; 			   'cl-usb::descriptor))
+(defun get-vendor-id (dev)
+  (sb-alien:slot 
+   (device-descriptor dev)
+   'id-vendor))
 
-;; (defun get-vendor-id (dev)
-;;   (cffi:foreign-slot-value (device-get-descriptor dev) 
-;; 			   'cl-usb::usb_device_descriptor
-;; 			   'cl-usb::idvendor))
+(defun get-product-id (dev)
+  (sb-alien:slot
+   (device-descriptor dev)
+   'id-product))
 
-;; (defun get-product-id (dev)
-;;   (cffi:foreign-slot-value (device-get-descriptor dev) 
-;; 			   'cl-usb::usb_device_descriptor
-;; 			   'cl-usb::idproduct))
+#+nil
+(mapcar #'(lambda (e) (format nil "#x~X" (get-product-id e))) (get-devices))
 
-;; (defun get-devices-by-ids (&key (vendor-id nil) (product-id nil))
-;;   (flet ((ids-match (dev)
-;; 	   (and (or (null vendor-id)
-;; 		    (= vendor-id (get-vendor-id dev)))
-;; 		(or (null product-id)
-;; 		    (= product-id (get-product-id dev))))))
-;;     (delete-if-not #'ids-match (get-devices))))
+(defun get-devices-by-ids (&key (vendor-id nil) (product-id nil))
+  (flet ((ids-match (dev)
+	   (and (or (null vendor-id)
+		    (= vendor-id (get-vendor-id dev)))
+		(or (null product-id)
+		    (= product-id (get-product-id dev))))))
+    (delete-if-not #'ids-match (get-devices))))
 
 ;; (defparameter *current-device* 0)
 ;; (defparameter *current-handle* 0)

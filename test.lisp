@@ -13,15 +13,13 @@
 (sb-libusb0-internal::bus-devices
  (sb-libusb0-internal::bus-next (sb-libusb0-internal::get-busses*)))
 
-#+nil ;; ugly hack:
-(sb-libusb0-internal::device-bus
- (sb-alien:sap-alien 
-  (sb-alien:alien-sap
-   (sb-libusb0-internal::bus-devices
-    (sb-libusb0-internal::get-busses*)))
-  (sb-alien:* sb-libusb0-internal::device)))
-
 #+nil
 (sb-libusb0-internal::device-next
  (sb-libusb0-internal::bus-devices
   (sb-libusb0-internal::get-busses*)))
+
+#+nil
+
+(sb-alien:addr (sb-libusb0-internal::get-devices))
+
+(sb-libusb0-internal::get-devices-by-ids :vendor-id #x058f :product-id #xb002)
