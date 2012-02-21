@@ -90,3 +90,12 @@
 #+nil
 (pkg-call #x01 '(1 2 3))
 
+#|
+#x17 getNumBitplanes
+#x20 getROCount
+#x21 getSelectedRO
+#x22 getDefaultRO
+#x23 setSelectedRO byte
+#x24 setDefaultRO byte
+
+|#
