@@ -3,6 +3,8 @@
 (sb-alien:define-alien-type handle int)
 (sb-alien:define-alien-type phandle (sb-alien:* handle))
 
+(sb-alien:define-alien-type ps-device
+    (sb-alien:* (sb-alien:struct device)))
 
 (defvar *libusb0-initialized* nil)
 (defvar *libusb0-shared-object* nil)

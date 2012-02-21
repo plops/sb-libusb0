@@ -9,17 +9,19 @@
  	      (integer id-vendor "u_int16_t" "idVendor")
  	      (integer id-product "u_int16_t" "idProduct")))
 
+ (:structure device
+ 	     ("struct usb_device"
+	      ((sb-alien:* (struct device)) next "struct usb_device *" "next")
+	      #+nil ((sb-alien:* (struct bus)) bus "struct usb_bus *" "bus")))
 
  (:structure bus 
  	     ("struct usb_bus"
  	      ((sb-alien:* (struct bus)) next "struct usb_bus *" "next")
- 	      #+nil((sb-alien:* (struct device)) devices "struct usb_device *" "devices")))
+	      ((sb-alien:* (struct device)) devices 
+	       "struct usb_device *" "devices")))
 
  
- (:structure device
- 	     ("struct usb_device"
-	      ((sb-alien:* (struct device)) next "struct usb_device *" "next")
- 	      #+nil((sb-alien:* (struct bus)) "struct usb_bus *" "bus")))
+ 
 
   
 
@@ -27,10 +29,16 @@
  (:function find-busses* ("usb_find_busses" int))
  (:function find-devices* ("usb_find_devices" int))
  (:function get-busses* ("usb_get_busses" (sb-alien:* bus)))
- (:function open* ("usb_open" phandle (dev (sb-alien:* device)))) ; 2x pointer
- (:function close* ("usb_close" int (handle phandle))) ; int pointer
- (:function claim-interface* ("usb_claim_interface" int (handle phandle) (interface int)))
- (:function release-interface* ("usb_release_interface" int (handle phandle) (interface int)))
+ (:function open* ("usb_open" phandle 
+			      (dev (sb-alien:* device)))) 
+ (:function close* ("usb_close" int 
+				(handle phandle))) 
+ (:function claim-interface* ("usb_claim_interface" int 
+						    (handle phandle) 
+						    (interface int)))
+ (:function release-interface* ("usb_release_interface" int
+							(handle phandle) 
+							(interface int)))
  (:function bulk-read* ("usb_bulk_read" int 
 					(handle phandle) 
 					(endpoint int)
