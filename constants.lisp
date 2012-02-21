@@ -22,11 +22,6 @@
 	      ((sb-alien:* (struct device)) devices 
 	       "struct usb_device *" "devices")))
 
- 
- 
-
-  
-
  (:function init* ("usb_init" void))
  (:function find-busses* ("usb_find_busses" int))
  (:function find-devices* ("usb_find_devices" int))

@@ -19,7 +19,17 @@
   (sb-libusb0-internal::get-busses*)))
 
 #+nil
-
 (sb-alien:addr (sb-libusb0-internal::get-devices))
 
-(sb-libusb0-internal::get-devices-by-ids :vendor-id #x058f :product-id #xb002)
+#+nil
+(defparameter *d*
+  (car
+   (sb-libusb0-internal::get-devices-by-ids :vendor-id #x058f :product-id #xb002)))
+
+#+nil
+(defparameter *d2*
+ (sb-libusb0-internal::usb-open *d*))
+
+#+nil
+(usbint::check
+ (usbint::claim-interface* *d2* 1))

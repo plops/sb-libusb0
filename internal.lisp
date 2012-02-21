@@ -9,7 +9,7 @@
 (defmacro check (&body body)
   `(let ((val (progn ,@body)))
      (if (< val 0)
-	 (error (list "libusb:" ,@body))
+	 (error (format nil "libusb error: ~a returned ~a" ',@body val))
 	 val)))
 
 (defun ensure-libusb0-initialized ()
@@ -84,80 +84,76 @@
 		    (= product-id (get-product-id dev))))))
     (delete-if-not #'ids-match (get-devices))))
 
-;; (defparameter *current-device* 0)
-;; (defparameter *current-handle* 0)
-;; (defparameter *current-ep* 0)
-;; (defparameter *current-interface* 0)
 
-;; (defun usb-open (&optional (dev *current-device*))
-;;   "Returns handle"
-;;   (cl-usb::usb-open dev))
 
-;; (defun usb-close (&optional (handle *current-handle*))
-;;   (check
-;;    (cl-usb::usb-close handle)))
+(defparameter *current-device* 0)
+(defparameter *current-handle* 0)
+(defparameter *current-ep* 0)
+(defparameter *current-interface* 0)
 
-;; (defmacro with-usb-open (dev &body body)
-;;   `(let ((*current-device* ,dev))
-;;      (let ((*current-handle* (usb-open ,dev)))
-;;        ,@body
-;;        (usb-close))))
+(defun usb-open (&optional (dev *current-device*))
+  "Returns handle"
+  (open* dev))
 
-;; (defun clear-halt (&key (handle *current-handle*) (ep *current-ep*))
-;;   (check
-;;    (cl-usb::usb-clear-halt handle ep)))
+(defun usb-close (&optional (handle *current-handle*))
+  (check
+   (close* handle)))
 
-;; (defun reset (&optional (handle *current-handle*))
-;;   (check
-;;    (cl-usb::usb-reset handle)))
+(defmacro with-usb-open (dev &body body)
+  `(let ((*current-device* ,dev))
+     (let ((*current-handle* (usb-open ,dev)))
+       ,@body
+       (usb-close))))
 
-;; (defun claim-interface (&key (handle *current-handle*) (interface *current-interface*))
-;;   (declare (type fixnum interface))
-;;   (check
-;;    (cl-usb::usb-claim-interface handle interface)))
+(defun claim-interface (&key (handle *current-handle*)
+			(interface *current-interface*))
+  (declare (type fixnum interface))
+  (check
+    (claim-interface* handle interface)))
 
-;; (defun release-interface (&key (handle *current-handle*) (interface *current-interface*))
-;;   (declare (type fixnum interface))
-;;   (check
-;;    (cl-usb::usb-release-interface handle interface)))
+(defun release-interface (&key (handle *current-handle*) (interface *current-interface*))
+  (declare (type fixnum interface))
+  (check
+   (release-interface* handle interface)))
 
-;; (defmacro with-claimed-interface ((interface &key (handle *current-handle*)) &body body)
-;;   `(let ((*current-interface* ,interface))
-;;      (claim-interface :handle ,handle :interface ,interface)
-;;      ,@body
-;;      (release-interface :handle ,handle :interface ,interface)
-;;      (values)))
+(defmacro with-claimed-interface ((interface &key (handle *current-handle*))
+				  &body body)
+  `(let ((*current-interface* ,interface))
+     (claim-interface :handle ,handle :interface ,interface)
+     ,@body
+     (release-interface :handle ,handle :interface ,interface)
+     (values)))
 
-;; (defmacro with-ep (ep &body body)
-;;   `(let ((*current-ep* ,ep))
-;;      ,@body))
+(defmacro with-ep (ep &body body)
+  `(let ((*current-ep* ,ep))
+     ,@body))
 
-;; (defun bulk-write (data &key (handle *current-handle*) (ep *current-ep*)
-;; 		   (timeout_ms 1000))
-;;   (declare (type (simple-array (unsigned-byte 8) 1) data))
-;;   (let ((len (sb-sys:with-pinned-objects (data)
-;; 	       (check 
-;; 		 (cl-usb::usb-bulk-write handle 
-;; 					 ep 
-;; 					 (sb-sys:vector-sap data)
-;; 					 (length data) 
-;; 					 timeout_ms)))))
-;;     (unless (= len (length data))
-;;       (error "libusb: couldn't write all data."))
-;;     len))
+(defun bulk-write (data &key (handle *current-handle*) (ep *current-ep*)
+		   (timeout_ms 1000))
+  (declare (type (simple-array (unsigned-byte 8) 1) data))
+  (let ((len (sb-sys:with-pinned-objects (data)
+	       (check 
+		 (bulk-write* handle 
+			      ep 
+			      (sb-sys:vector-sap data)
+			      (length data) 
+			      timeout_ms)))))
+    (unless (= len (length data))
+      (error "libusb: couldn't write all data."))
+    len))
 
-;; (defun bulk-read (bytes-to-read &key (handle *current-handle*) (ep *current-ep*)
-;; 		  (timeout_ms 1000))
-;;   ;; interface must be claimed
-;;   (let ((data (make-array bytes-to-read :element-type '(unsigned-byte 8))))
-;;     (declare (type (simple-array (unsigned-byte 8) 1) data))
-;;     (let ((len (sb-sys:with-pinned-objects (data)
-;; 		 (check
-;; 		   (cl-usb::usb-bulk-read handle
-;; 					  ep
-;; 					  (sb-sys:vector-sap data)
-;; 					  bytes-to-read
-;; 					  timeout_ms)))))
-;;       (unless (= len bytes-to-read)
-;; 	(error "libusb: couldn't read all data."))
-;;       len)))
+(defun bulk-read (bytes-to-read &key (handle *current-handle*) (ep *current-ep*)
+		  (timeout_ms 1000))
+  ;; interface must be claimed
+  (let ((data (make-array bytes-to-read :element-type '(unsigned-byte 8))))
+    (declare (type (simple-array (unsigned-byte 8) 1) data))
+    (let ((len (sb-sys:with-pinned-objects (data)
+		 (check
+		   (bulk-read* handle
+			       ep
+			       (sb-sys:vector-sap data)
+			       bytes-to-read
+			       timeout_ms)))))
+      (unless (= len bytes-to-read)
+	(error "libusb: couldn't read all data."))
+      len)))
