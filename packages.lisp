@@ -5,7 +5,10 @@
    :with-usb-open
    :with-claimed-interface
    :ensure-libusb0-initialized
-   :get-devices-by-ids))
+   :get-devices-by-ids
+   :with-ep
+   :bulk-write
+   :bulk-read))
 
 (defpackage :sb-libusb0
   (:export)
