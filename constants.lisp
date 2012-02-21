@@ -9,23 +9,24 @@
  	      (integer id-vendor "u_int16_t" "idVendor")
  	      (integer id-product "u_int16_t" "idProduct")))
 
+
  (:structure bus 
  	     ("struct usb_bus"
- 	      (integer next "struct usb_bus *" "next")
- 	      (integer previous "struct usb_bus *" "prev")
- 	      (integer devices "struct usb_device *" "devices")))
+ 	      ((sb-alien:* (struct bus)) next "struct usb_bus *" "next")
+ 	      #+nil((sb-alien:* (struct device)) devices "struct usb_device *" "devices")))
 
- ;(:structure device-handle ("struct usb_dev_handle"))
-
+ 
  (:structure device
  	     ("struct usb_device"
- 	      (integer next "struct device_bus *" "next")
- 	      (integer previous "struct device_bus *" "prev")
- 	      (integer bus "struct usb_bus *" "bus")))
+	      ((sb-alien:* (struct device)) next "struct usb_device *" "next")
+ 	      #+nil((sb-alien:* (struct bus)) "struct usb_bus *" "bus")))
+
+  
 
  (:function init* ("usb_init" void))
  (:function find-busses* ("usb_find_busses" int))
  (:function find-devices* ("usb_find_devices" int))
+ (:function get-busses* ("usb_get_busses" (sb-alien:* bus)))
  (:function open* ("usb_open" phandle (dev (sb-alien:* device)))) ; 2x pointer
  (:function close* ("usb_close" int (handle phandle))) ; int pointer
  (:function claim-interface* ("usb_claim_interface" int (handle phandle) (interface int)))

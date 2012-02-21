@@ -13,5 +13,5 @@
 				      :package :sb-libusb0-internal
 				      :depends-on ("internal" "packages"))
 	      ; (:file "libusb0-internal" :depends-on ("packages"))
-	      ; (:file "libusb0" :depends-on ("libusb0-internal" "packages"))
+	      (:file "libusb0-ffi" :depends-on ("internal" "packages"))
 	       ))
