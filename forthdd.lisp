@@ -39,9 +39,54 @@
 			(ldb (byte 8 8) address16)
 			(ldb (byte 8 0) address16)
 			length-1))
-	 (a (make-byte-array (1+ (length content)) content)))
-    (setf (aref a 4) (checksum a 4))
+	 (n (length content))
+	 (a (make-byte-array (1+ n) content)))
+    (setf (aref a n) (checksum a n))
+    a))
+
+(defun pkg-write (address16 data)
+  (declare (type (unsigned-byte 16) address16))
+  (let* ((content (list (char-code #\W)
+			(ldb (byte 8 8) address16)
+			(ldb (byte 8 0) address16)
+			(1- (length data))))
+	 (n (length content))
+	 (a (make-byte-array (1+ n) content)))
+    (setf (aref a n) (checksum a n))
     a))
 
 #+nil
 (pkg-read #x0101 01)
+
+(defun pkg-grab-or-burn (code blocknum32)
+  (declare (type (unsigned-byte 32) blocknum32))
+  (declare (type (unsigned-byte 8) code))
+  (let* ((content (list code
+			(ldb (byte 8 24) blocknum32)
+			(ldb (byte 8 16) blocknum32)
+			(ldb (byte 8 8) blocknum32)
+			(ldb (byte 8 0) blocknum32)))
+	 (n (length content))
+	 (a (make-byte-array (1+ n) content)))
+    (setf (aref a n) (checksum a n))
+    a))
+
+(defun pkg-grab (blocknum32)
+  (pkg-grab-or-burn (char-code #\G) blocknum32))
+
+(defun pkg-burn (blocknum32)
+  (pkg-grab-or-burn (char-code #\B) blocknum32))
+
+(defun pkg-call (function &optional data)
+  (declare (type (unsigned-byte 8) function))
+  (push (length data) data)
+  (push function data)
+  (push (char-code #\C) data)
+  (let* ((n (length data))
+	 (a (make-byte-array (1+ n) data)))
+    (setf (aref a n) (checksum a n))
+    a))
+
+#+nil
+(pkg-call #x01 '(1 2 3))
+
