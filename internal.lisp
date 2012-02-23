@@ -154,6 +154,8 @@
 			       (sb-sys:vector-sap data)
 			       bytes-to-read
 			       timeout_ms)))))
-      (unless (= len bytes-to-read)
-	(error "libusb: couldn't read all data."))
-      len)))
+      (if (= len bytes-to-read)
+	  data
+	  (progn
+	    (format t "libusb: couldn't read all data.")
+	    (subseq data 0 len))))))

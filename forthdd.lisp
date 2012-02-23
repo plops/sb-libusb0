@@ -8,6 +8,22 @@
 ;; original python prototype 1214/ser/ser.py
 
 #+nil
+(car (get-devices-by-ids :vendor-id #x19ec :product-id #x0300))
+
+(defparameter *handle* (usbint::usb-open 
+			(car (get-devices-by-ids :vendor-id #x19ec :product-id #x0300))))
+
+(defparameter *intf* (usbint::claim-interface :handle *handle* :interface 0))
+
+(defun forthdd-write (data)
+  (with-ep #x04
+    (bulk-write data :handle *handle*)))
+
+(defun forthdd-read (bytes-to-read)
+  (with-ep #x83
+    (bulk-read bytes-to-read :handle *handle*)))
+
+#+nil
 (with-usb-open (car (get-devices-by-ids :vendor-id #x19ec :product-id #x0300))
   (with-ep #x04
     (bulk-write )))
@@ -89,6 +105,16 @@
 
 #+nil
 (pkg-call #x01 '(1 2 3))
+
+#+nil
+(forthdd-write (pkg-call 2))
+#+nil
+(defparameter *resp* (forthdd-read 1024))
+
+;; (map 'string #'code-char *resp*)
+
+;; => "rTue Jan  5 10:20:15 2010
+;; "
 
 #|
 #x17 getNumBitplanes

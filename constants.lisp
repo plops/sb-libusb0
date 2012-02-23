@@ -43,7 +43,7 @@
 					(size int)
 					(timeout_ms int)))
  (:function bulk-write* ("usb_bulk_write" int 
-					  (handle handle)
+					  (handle phandle)
 					  (endpoint int)
 					  (bytes (* sb-alien:char))
 					  (size int)
