@@ -1,8 +1,8 @@
 ;;; -*- Lisp -*- - well, that's stretching a point.  code=data != data=code
 
 ;;; first, the headers necessary to find definitions of everything
-("usb.h")
-
+#-win32 ("usb.h")
+#+win32 ("C:/Users/martin/Downloads/libusb-win32-bin-1.2.6.0/libusb-win32-bin-1.2.6.0/include/lusb0_usb.h")
 ;;; then the stuff we're looking for
 ((:structure device-descriptor 
  	     ("struct usb_device_descriptor"

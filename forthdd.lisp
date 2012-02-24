@@ -6,13 +6,23 @@
 (in-package :forthdd)
 
 ;; original python prototype 1214/ser/ser.py
+;; /home/martin/wxga-forthdd/AN0005AA\ RS232\ Control\ Protocol\ for\ SXGA-R3\ Systems_0.pdf
+;; if i had a graphics card, that is triggered with the camera, the dvi display should work
+;; from-uffz/pdfs2/Downloads/forthdd/AN0015AA_RS-232_Control_Protocol_for_SXGA-3DM_Systems_0.pdf
 
 #+nil
-(car (get-devices-by-ids :vendor-id #x19ec :product-id #x0300))
+(usbint::get-product-id (car (get-devices-by-ids)))
 
+#+nil
+(get-devices-by-ids :vendor-id #x19ec :product-id #x0300)
+
+(defparameter *handle* nil)
+
+#+nil
 (defparameter *handle* (usbint::usb-open 
 			(car (get-devices-by-ids :vendor-id #x19ec :product-id #x0300))))
 
+#+nil
 (defparameter *intf* (usbint::claim-interface :handle *handle* :interface 0))
 
 (defun forthdd-write (data)
@@ -24,7 +34,8 @@
     (bulk-read bytes-to-read :handle *handle*)))
 
 #+nil
-(with-usb-open (car (get-devices-by-ids :vendor-id #x19ec :product-id #x0300))
+(with-usb-open (car (get-devices-by-ids :vendor-id #x19ec
+					:product-id #x0300))
   (with-ep #x04
     (bulk-write )))
 
@@ -125,3 +136,14 @@
 #x24 setDefaultRO byte
 
 |#
+
+(defun slave-package (pkg)
+  (declare (type (simple-array (unsigned-byte 8) 1) pkg))
+  (ecase (aref pkg 0)
+    (97 'ack) ;; a 
+    (101 'error) ;; e 
+    (112 'pro) ;; p
+    (120 'exc) ;; x 
+    (114 'ret) ;; r
+    (108 'log) ;; l
+    ))

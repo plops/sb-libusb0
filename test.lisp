@@ -7,6 +7,12 @@
 (sb-libusb0-internal::ensure-libusb0-initialized)
 
 #+nil
+(usbint::get-busses)
+
+#+nil
+(usbint::get-devices)
+
+#+nil
 (sb-libusb0-internal::bus-next (sb-libusb0-internal::get-busses*))
 
 #+nil

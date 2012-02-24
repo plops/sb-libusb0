@@ -14,7 +14,9 @@
 
 (defun ensure-libusb0-initialized ()
   (unless *libusb0-initialized*
-    (setf *libusb0-shared-object* (sb-alien:load-shared-object "libusb.so"))
+    (setf *libusb0-shared-object* 
+	  #-win32 (sb-alien:load-shared-object "libusb.so")
+	  #+win32 (sb-alien:load-shared-object "C:/Users/martin/Downloads/libusb-win32-bin-1.2.6.0/libusb-win32-bin-1.2.6.0/bin/amd64/libusb0.dll"))
     (init*)
     (setf *libusb0-initialized* t))
   (list (check (find-busses*))
