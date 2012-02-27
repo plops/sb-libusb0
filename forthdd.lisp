@@ -1,5 +1,5 @@
 (require :sb-libusb0)
-
+;(asdf:oos 'asdf:compile-op :sb-libusb0 :verbose t)
 (defpackage :forthdd
   (:use :cl :sb-libusb0-internal))
 
@@ -12,7 +12,10 @@
 
 #+nil
 (usbint::get-product-id (car (get-devices-by-ids)))
-
+#+nil
+(usbint::ensure-libusb0-initialized)
+#+nil
+(usbint::get-devices)
 #+nil
 (get-devices-by-ids :vendor-id #x19ec :product-id #x0300)
 
@@ -22,7 +25,11 @@
 (defparameter *handle* (usbint::usb-open 
 			(car (get-devices-by-ids :vendor-id #x19ec :product-id #x0300))))
 
+;; i need to call set-configuration according to Downloads/libusbwin32_documentation.html
 #+nil
+(defparameter *conf* (usbint::set-configuration* *handle* 1))
+
+#+nil 
 (defparameter *intf* (usbint::claim-interface :handle *handle* :interface 0))
 
 (defun forthdd-write (data)
@@ -117,25 +124,34 @@
 #+nil
 (pkg-call #x01 '(1 2 3))
 
-#+nil
+#+ni
 (forthdd-write (pkg-call 2))
+#+nil
+(forthdd-write (pkg-call 1)) ;; reboot
+
+#+nil
+(forthdd-write (pkg-call #x23 '(3)))
+
+(defun forthdd-talk (function &optional data)
+  (forthdd-write (pkg-call function data))
+  (forthdd-read 1024))
+
+(forthdd-talk #x27)
+
+#+nil
+(forthdd-write (pkg-call #x28))
+
+#+nil
+(forthdd-write (pkg-call #x27)) ;; activate
 #+nil
 (defparameter *resp* (forthdd-read 1024))
 
-;; (map 'string #'code-char *resp*)
+#+nil
+(map 'string #'code-char *resp*)
 
 ;; => "rTue Jan  5 10:20:15 2010
 ;; "
 
-#|
-#x17 getNumBitplanes
-#x20 getROCount
-#x21 getSelectedRO
-#x22 getDefaultRO
-#x23 setSelectedRO byte
-#x24 setDefaultRO byte
-
-|#
 
 (defun slave-package (pkg)
   (declare (type (simple-array (unsigned-byte 8) 1) pkg))
@@ -147,3 +163,43 @@
     (114 'ret) ;; r
     (108 'log) ;; l
     ))
+
+#|
+#x17 getNumBitplanes
+#x20 getROCount
+#x21 getSelectedRO
+#x22 getDefaultRO
+#x23 setSelectedRO byte
+#x24 setDefaultRO byte
+
+|#
+
+
+(defparameter cmds
+  `((0 is-ap)
+    (1 reboot)
+    (2 timestamp)
+    (3 version)
+    (5 erase-block (blocknum 4))
+    (#x17 get-num-bitplanes)
+    (#x20 get-ro-count)
+    (#x21 get-selected-ro)
+    (#x22 get-default-ro)
+    (#x23 set-selected-ro (num 1))
+    (#x24 set-default-ro (num 1))
+    (#x25 get-activation-type)
+    (#x26 get-activation-state)
+    (#x27 activate)
+    (#x28 deactivate)
+    (#x29 reload-repertoire)
+    (#x30 save-settings)
+    (#x31 set-led (brightness 1))
+    (#x32 get-led)
+    (#x33 set-flip-testpattern (out-ctrl 1))
+    (#x34 get-flip-testpattern)
+    (#x35 get-daughterboard-type)
+    (#x36 adc-read (channel 1))
+    (#x37 board-id)
+    (#x38 display-type)
+    (#x39 display-temp)
+    (#x3b get-serial-num)))

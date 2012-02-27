@@ -30,6 +30,9 @@
 			      (dev (sb-alien:* device)))) 
  (:function close* ("usb_close" int 
 				(handle phandle))) 
+ (:function set-configuration* ("usb_set_configuration" int 
+						    (handle phandle) 
+						    (configuration int)))
  (:function claim-interface* ("usb_claim_interface" int 
 						    (handle phandle) 
 						    (interface int)))
