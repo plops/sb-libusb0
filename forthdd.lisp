@@ -40,17 +40,6 @@
   (with-ep #x83
     (bulk-read bytes-to-read :handle *handle*)))
 
-#+nil
-(with-usb-open (car (get-devices-by-ids :vendor-id #x19ec
-					:product-id #x0300))
-  (with-ep #x04
-    (bulk-write )))
-
-#+nil
-(with-usb-open (car (get-devices-by-ids :vendor-id #x19ec :product-id #x0300))
-  (with-ep #x83
-    (bulk-read )))
-
 (defun make-byte-array (n &optional initial-contents)
   (let ((a (make-array n :element-type '(unsigned-byte 8) :initial-element 0)))
     (loop for i below (min n (length initial-contents)) do
@@ -136,7 +125,14 @@
   (forthdd-write (pkg-call function data))
   (forthdd-read 1024))
 
-(forthdd-talk #x27)
+
+#+nil
+(forthdd-talk #x28)
+
+#+nil
+(dotimes (i 10)
+  (sleep .1)
+  (forthdd-talk #x23 (list i)))
 
 #+nil
 (forthdd-write (pkg-call #x28))
