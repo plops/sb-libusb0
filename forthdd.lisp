@@ -1,3 +1,8 @@
+#+nil
+(eval-when (:compile-toplevel :execute :load-toplevel)
+ ;(push "/home/martin/0220/sb-libusb0/" asdf:*central-registry*)
+ (setf asdf:*central-registry* 
+       '("c:/Users/martin/Desktop/tmp/0220/sb-libusb0/") ))
 (require :sb-libusb0)
 ;(asdf:oos 'asdf:compile-op :sb-libusb0 :verbose t)
 (defpackage :forthdd
@@ -127,11 +132,16 @@
 
 
 #+nil
-(forthdd-talk #x28)
+(forthdd-talk #x28) ;; deactivate
+#+nil
+(forthdd-talk #x27) ;; activate
+
+#+nil
+(forthdd-talk #x0)
 
 #+nil
 (dotimes (i 10)
-  (sleep .1)
+  (sleep .1) ;; select running order
   (forthdd-talk #x23 (list i)))
 
 #+nil
