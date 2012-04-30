@@ -1,8 +1,8 @@
 #+nil
 (eval-when (:compile-toplevel :execute :load-toplevel)
- ;(push "/home/martin/0220/sb-libusb0/" asdf:*central-registry*)
- (setf asdf:*central-registry* 
-       '("c:/Users/martin/Desktop/tmp/0220/sb-libusb0/") ))
+ #-win64 (push "~/stage/sb-libusb0/" asdf:*central-registry*)
+ #+win64 (setf asdf:*central-registry* 
+	       '("c:/Users/martin/Desktop/tmp/0220/sb-libusb0/") ))
 (require :sb-libusb0)
 ;(asdf:oos 'asdf:compile-op :sb-libusb0 :verbose t)
 (defpackage :forthdd
@@ -153,7 +153,7 @@
 (defparameter *resp* (forthdd-read 1024))
 
 #+nil
-(map 'string #'code-char *resp*)
+(map 'string #'code-char (forthdd-talk 2))
 
 ;; => "rTue Jan  5 10:20:15 2010
 ;; "
