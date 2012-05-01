@@ -30,6 +30,9 @@
 (defparameter *handle* (usbint::usb-open 
 			(car (get-devices-by-ids :vendor-id #x19ec :product-id #x0300))))
 
+#+nil
+(usbint::usb-close *handle*)
+
 ;; i need to call set-configuration according to Downloads/libusbwin32_documentation.html
 #+nil
 (defparameter *conf* (usbint::set-configuration* *handle* 1))
@@ -130,19 +133,9 @@
   (forthdd-write (pkg-call function data))
   (forthdd-read 1024))
 
-
-#+nil
-(forthdd-talk #x28) ;; deactivate
-#+nil
-(forthdd-talk #x27) ;; activate
-
 #+nil
 (forthdd-talk #x0)
 
-#+nil
-(dotimes (i 10)
-  (sleep .1) ;; select running order
-  (forthdd-talk #x23 (list i)))
 
 #+nil
 (progn ;;activate
