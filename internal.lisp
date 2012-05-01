@@ -159,5 +159,6 @@
       (if (= len bytes-to-read)
 	  data
 	  (progn
-	    (format t "libusb: couldn't read all data.")
+	    (format t "libusb: couldn't read all data len=~d bytes-to-read=~d.~%"
+		    len bytes-to-read)
 	    (subseq data 0 len))))))

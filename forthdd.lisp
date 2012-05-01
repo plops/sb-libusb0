@@ -145,10 +145,15 @@
   (forthdd-talk #x23 (list i)))
 
 #+nil
-(forthdd-write (pkg-call #x28))
-
+(progn ;;activate
+  (forthdd-talk #x27))
 #+nil
-(forthdd-write (pkg-call #x27)) ;; activate
+(progn ;;deactivate
+  (forthdd-talk #x28))
+#+nil
+(progn ;; switch image/running order
+  (forthdd-talk #x23 '(27)))
+
 #+nil
 (defparameter *resp* (forthdd-read 1024))
 
