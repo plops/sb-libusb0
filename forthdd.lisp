@@ -136,16 +136,25 @@
 #+nil
 (forthdd-talk #x0)
 
-
+#+nil
+(progn ;; get number of bitplanes
+  (forthdd-talk #x17))
 #+nil
 (progn ;;activate
   (forthdd-talk #x27))
 #+nil
 (progn ;;deactivate
   (forthdd-talk #x28))
+#+NIL
+(progn ;; get activation type
+  (forthdd-talk #x25))
+#+nil
+(progn ;; get activation state
+  (forthdd-talk #x26))
+
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '(27)))
+  (forthdd-talk #x23 '(22)))
 
 #+nil
 (defparameter *resp* (forthdd-read 1024))
@@ -207,3 +216,36 @@
     (#x38 display-type)
     (#x39 display-temp)
     (#x3b get-serial-num)))
+
+(defconstant +EXT-FLASH-BASE+ #x01000000)
+(defconstant +EXT-FLASH-BUFFER+ #x0400) ;; start of flash buffer in RAM
+(defconstant +EXT-FLASH-PAGE-SIZE+ #x0800)
+
+
+
+(defun erase-block (blocknum)
+  (declare (type (unsigned-byte 32) blocknum))
+  ;; msb first
+  (forthdd-talk 5 (loop for i below 32 by 8 collect
+		       (ldb (byte 8 i) blocknum))))
+
+(defun write-page (blocknum page)
+  (declare (type (simple-array unsigned-byte 1) page)
+	   (type (unsigned-byte 32) blocknum))
+  ;; write in chunks of 256 bytes
+  (dotimes (i 8)
+    (write-ex (+ (* i 256) +EXT-FLASH-BUFFER+)
+	      (subseq page 
+		      (* 256 i)
+		      (* 256 (1+ i))))
+    (burn-ex blocknum)))
+
+(defun write-bitplane (img)
+  (let* ((img1 (sb-ext:array-storage-vector img))
+	 (n (length img1))
+	 (p +EXT-FLASH-PAGE-SIZE+))
+    (dotimes (i (floor n p))
+      (write-page (+ i +EXT-FLASH-BASE+)
+		  (subseq img1
+			  (* i p)
+			  (* (1+ i) p))))))
