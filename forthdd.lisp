@@ -140,6 +140,10 @@
 (progn ;; get number of bitplanes
   (forthdd-talk #x17))
 #+nil
+(progn ;; get default ro
+  (forthdd-talk #x22))
+;; image 41 is default
+#+nil
 (progn ;;activate
   (forthdd-talk #x27))
 #+nil
@@ -222,12 +226,34 @@
 (defconstant +EXT-FLASH-PAGE-SIZE+ #x0800)
 
 
+(loop for i below 32 by 8 collect
+		   ;; msb first
+		     (format nil "~x"(ldb (byte 8 (- 24 i)) #x12345678)))
 
 (defun erase-block (blocknum)
   (declare (type (unsigned-byte 32) blocknum))
-  ;; msb first
-  (forthdd-talk 5 (loop for i below 32 by 8 collect
-		       (ldb (byte 8 i) blocknum))))
+  (forthdd-talk 5
+		(loop for i below 32 by 8 collect
+		   ;; msb first
+		     (ldb (byte 8 (- 24 i)) blocknum))))
+
+(defun check-ack (pkg)
+  (unless (eq 'ack (slave-package pkg))
+    (break "error, device didnt acknowledge: ~a" pkg)))
+
+(defun erase-bitplane ()
+  (check-ack
+   (erase-block +EXT-FLASH-BASE+))
+  (check-ack
+   (erase-block (+ #x40 +EXT-FLASH-BASE+))))
+
+#+nil
+(erase-bitplane)
+
+(defun write-ex (address16 data)
+  (declare (type (unsigned-byte 16) address16))
+  (forthdd-write (pkg-call function data))
+  (forthdd-read 1024))
 
 (defun write-page (blocknum page)
   (declare (type (simple-array unsigned-byte 1) page)
@@ -239,6 +265,16 @@
 		      (* 256 i)
 		      (* 256 (1+ i))))
     (burn-ex blocknum)))
+
+def writeex(address16,data):
+    s.write(write_pkg(address16,data))
+    #print address16
+    while s.read()!='a':
+        # time.sleep(.2)
+        #print 'error', 
+        s.read(s.inWaiting())
+        s.write(write_pkg(address16,data))
+
 
 (defun write-bitplane (img)
   (let* ((img1 (sb-ext:array-storage-vector img))
