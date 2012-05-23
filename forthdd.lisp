@@ -225,11 +225,6 @@
 (defconstant +EXT-FLASH-BUFFER+ #x0400) ;; start of flash buffer in RAM
 (defconstant +EXT-FLASH-PAGE-SIZE+ #x0800)
 
-
-(loop for i below 32 by 8 collect
-		   ;; msb first
-		     (format nil "~x"(ldb (byte 8 (- 24 i)) #x12345678)))
-
 (defun erase-block (blocknum)
   (declare (type (unsigned-byte 32) blocknum))
   (forthdd-talk 5
@@ -252,31 +247,71 @@
 
 (defun write-ex (address16 data)
   (declare (type (unsigned-byte 16) address16))
-  (forthdd-write (pkg-call function data))
-  (forthdd-read 1024))
+  (forthdd-write (pkg-write address16 data))
+  (check-ack (forthdd-read 1024)))
 
-(defun write-page (blocknum page)
+(defun burn-ex (blocknum32)
+  (declare (type (unsigned-byte 32) blocknum32))
+  (forthdd-write (pkg-burn blocknum32))
+  (check-ack (forthdd-read 1024)))
+
+(defun write-page (blocknum32 page)
   (declare (type (simple-array unsigned-byte 1) page)
-	   (type (unsigned-byte 32) blocknum))
+	   (type (unsigned-byte 32) blocknum32))
   ;; write in chunks of 256 bytes
   (dotimes (i 8)
     (write-ex (+ (* i 256) +EXT-FLASH-BUFFER+)
 	      (subseq page 
 		      (* 256 i)
 		      (* 256 (1+ i))))
-    (burn-ex blocknum)))
+    (burn-ex blocknum32)))
 
-def writeex(address16,data):
-    s.write(write_pkg(address16,data))
-    #print address16
-    while s.read()!='a':
-        # time.sleep(.2)
-        #print 'error', 
-        s.read(s.inWaiting())
-        s.write(write_pkg(address16,data))
+;; from 0x01 00 00 00 there are 960 blocks for images (120 MB)
+;; from 0x01 00 F1 00 there are 60 blocks for more data (7.5 MB)
 
+;; the image is filled from right to left and top to bottom
+;; the first 160 bytes are the top row
+
+;; each group of 8 bytes appear from left to right
+;; each byte is displayed with the least significant
+;; bit on the left
+
+;; bytes: 152 153 154 .. 8 9 10 11 12 13 14 15 0 1 2 3 4 5 6 7
+;; bits: ... 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+
+(defun bitflip (b)
+  ;; http://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64BitsDiv
+  (declare (type unsigned-byte b)
+	   (values unsigned-byte &optional))
+  (let ((spread #x0202020202)
+	(select #x010884422010))
+    (declare (type (unsigned-byte 64) spread select))
+    (mod (logand (* b spread)
+		 select)
+	 1023)))
+#+nil
+(bitflip #b0000111)
+#+nil
+(bitflip #b10001111)
+
+(defun create-bitplane (img)
+  (declare (type (simple-array unsigned-byte (1024 1280)) img))
+  (let* ((w 160)
+	 (h 1024)
+	 (bits (make-array (list h w)
+			   :element-type 'unsigned-byte)))
+    (dotimes (j h)
+      (dotimes (i w)
+	(dotimes (k 8)
+	  (setf (ldb (byte 1 k) (aref bits j i))
+		(aref img j (+ k (* 8 i)))))))
+    bits))
 
 (defun write-bitplane (img)
+  ;; one bitplane contains 80 pages (smallest write unit) or 1.25
+  ;; blocks (smallest erase unit)
+  ;; 1280 x 1024
+  (declare (type (simple-array unsigned-byte (1024 160)) img))
   (let* ((img1 (sb-ext:array-storage-vector img))
 	 (n (length img1))
 	 (p +EXT-FLASH-PAGE-SIZE+))
