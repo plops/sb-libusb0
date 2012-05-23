@@ -275,8 +275,7 @@
     (write-ex (+ (* i 256) +EXT-FLASH-BUFFER+)
 	      (subseq page 
 		      (* 256 i)
-		      (* 256 (1+ i))))
-    (sleep .1))
+		      (* 256 (1+ i)))))
   (burn-ex blocknum32))
 
 #+nil
@@ -346,15 +345,16 @@
 #+nil
 (erase-bitplane)
 #+nil
-(let* ((h 1024)
-       (w 1280)
-       (a 
-	(make-array (list h w)
-		    :element-type 'unsigned-byte)))
-  (dotimes (i w)
-    (dotimes (j h)
-      (let ((r (sqrt (+ (expt (- i (floor w 2)) 2)
-			(expt (- j (floor h 2)) 2)))))
-	(when (< r 400)
-	  (setf (aref a j i) 1)))))
-  (write-bitplane (create-bitplane a)))
+(time 
+ (let* ((h 1024)
+	(w 1280)
+	(a 
+	 (make-array (list h w)
+		     :element-type 'unsigned-byte)))
+   (dotimes (i w)
+     (dotimes (j h)
+       (let ((r (sqrt (+ (expt (- i (floor w 2)) 2)
+			 (expt (- j (floor h 2)) 2)))))
+	 (when (< r 400)
+	   (setf (aref a j i) 1)))))
+   (write-bitplane (create-bitplane a))))
