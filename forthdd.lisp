@@ -77,15 +77,27 @@
 
 (defun pkg-write (address16 data)
   (declare (type (unsigned-byte 16) address16))
-  (let* ((content (list (char-code #\W)
+  (let* ((nd (length data))
+	 (content (list (char-code #\W)
 			(ldb (byte 8 8) address16)
 			(ldb (byte 8 0) address16)
-			(1- (length data))))
+			(1- nd)))
 	 (n (length content))
-	 (a (make-byte-array (1+ n) content)))
-    (setf (aref a n) (checksum a n))
+	 (a (make-byte-array (+ 1 n nd) content)))
+    (dotimes (i nd)
+      (setf (aref a (+ i n)) (aref data i)))
+    (setf (aref a (+ n nd)) (checksum a (+ n nd)))
     a))
 
+;; write(0x1234, 2, [0x02, 0x41, 0xF3])
+;; 57 12 34
+;; 02
+;; 02 41 F3 
+;; D6
+
+#+nil
+(format nil "~{~x ~}" (map 'list #'identity 
+			   (pkg-write #x1234 #(2 #x41 #xf3))))
 #+nil
 (pkg-read #x0101 01)
 
@@ -264,7 +276,17 @@
 	      (subseq page 
 		      (* 256 i)
 		      (* 256 (1+ i))))
-    (burn-ex blocknum32)))
+    (sleep .1))
+  (burn-ex blocknum32))
+
+#+nil
+(forthdd-write (pkg-write (+ (* 0 256) +EXT-FLASH-BUFFER+)
+			  (make-array 256 :element-type 'unsigned-byte)))
+#+nil
+(forthdd-read 1024)
+#+nil
+(pkg-write (+ (* 0 256) +EXT-FLASH-BUFFER+)
+	   (make-array 256 :element-type 'unsigned-byte))
 
 ;; from 0x01 00 00 00 there are 960 blocks for images (120 MB)
 ;; from 0x01 00 F1 00 there are 60 blocks for more data (7.5 MB)
@@ -304,7 +326,8 @@
       (dotimes (i w)
 	(dotimes (k 8)
 	  (setf (ldb (byte 1 k) (aref bits j i))
-		(aref img j (+ k (* 8 i)))))))
+		(if (= 0 (aref img j (+ k (* 8 i))))
+		    0 1)))))
     bits))
 
 (defun write-bitplane (img)
@@ -320,3 +343,18 @@
 		  (subseq img1
 			  (* i p)
 			  (* (1+ i) p))))))
+#+nil
+(erase-bitplane)
+#+nil
+(let* ((h 1024)
+       (w 1280)
+       (a 
+	(make-array (list h w)
+		    :element-type 'unsigned-byte)))
+  (dotimes (i w)
+    (dotimes (j h)
+      (let ((r (sqrt (+ (expt (- i (floor w 2)) 2)
+			(expt (- j (floor h 2)) 2)))))
+	(when (< r 400)
+	  (setf (aref a j i) 1)))))
+  (write-bitplane (create-bitplane a)))
