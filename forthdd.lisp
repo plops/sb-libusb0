@@ -392,12 +392,20 @@
 	(a (make-array (list h w) :element-type 'unsigned-byte)))
    (dotimes (j h)
      (dotimes (i w)
-       (if (oddp (floor j 32))
-	   (when (oddp i)
-	     (setf (aref a j i) #xff))
-	   (setf (aref a j i) #xff))))
+       (when (oddp i)
+	 (setf (aref a j i) #xff))))
    (write-bitplane a)))
 
+#+nil
+(forthdd-talk #x29)
+#+nil
+(forthdd-talk #x23 '(0))
+#+nil
+(progn ;;deactivate
+  (forthdd-talk #x28))
+#+nil
+(progn ;;activate
+  (forthdd-talk #x27))
 #+nil
 (progn ;; write white image
   (let* ((a (make-array '(1024 160)
