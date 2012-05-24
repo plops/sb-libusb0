@@ -173,6 +173,9 @@
 #+nil
 (progn ;;deactivate
   (forthdd-talk #x28))
+#+nil
+(progn ;; reload repertoir
+  (forthdd-talk #x29))
 #+NIL
 (progn ;; get activation type
   (forthdd-talk #x25))
@@ -182,7 +185,7 @@
 
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '(22)))
+  (forthdd-talk #x23 '(0)))
 
 #+nil
 (dotimes (i 10)
@@ -263,6 +266,11 @@
 	 (erase-block page)))))
 #+nil
 (erase-block #x01000040)
+
+#+nil
+(loop for page from #x01000000 below #x01000f00 by 64 do
+	(check-ack
+	 (erase-block page)))
 
 (defun erase-block (blocknum)
   "Erase the Flash block."
@@ -384,10 +392,10 @@
 	(a (make-array (list h w) :element-type 'unsigned-byte)))
    (dotimes (j h)
      (dotimes (i w)
-       (if (oddp (floor j 64))
+       (if (oddp (floor j 32))
 	   (when (oddp i)
 	     (setf (aref a j i) #xff))
-	   (setf (aref a j i) #xaa))))
+	   (setf (aref a j i) #xff))))
    (write-bitplane a)))
 
 #+nil
@@ -413,3 +421,4 @@
 	 (when (< r 400)
 	   (setf (aref a j i) 1)))))
    (write-bitplane (create-bitplane a))))
+;; after uploading a bitplane, issue reload-repertoir rpc call
