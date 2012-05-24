@@ -2,7 +2,9 @@
 (eval-when (:compile-toplevel :execute :load-toplevel)
  #-win64 (push "~/stage/sb-libusb0/" asdf:*central-registry*)
  #+win64 (setf asdf:*central-registry* 
-	       '("c:/Users/martin/Desktop/tmp/0220/sb-libusb0/") ))
+	       '("c:/Users/martin/Desktop/stage/sb-libusb0/") )
+ #+win32 (setf asdf:*central-registry* 
+	       '("c:/Users/martin/Desktop/stage/sb-libusb0/") ))
 (require :sb-libusb0)
 ;(asdf:oos 'asdf:compile-op :sb-libusb0 :verbose t)
 (defpackage :forthdd
@@ -180,7 +182,7 @@
 
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '(1)))
+  (forthdd-talk #x23 '(22)))
 
 #+nil
 (dotimes (i 10)

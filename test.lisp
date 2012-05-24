@@ -2,7 +2,7 @@
 (eval-when (:compile-toplevel :execute :load-toplevel)
  ;(push "/home/martin/0220/sb-libusb0/" asdf:*central-registry*)
  (setf asdf:*central-registry* 
-       '("c:/Users/martin/Desktop/tmp/0220/sb-libusb0/") ))
+       '("c:/Users/martin/Desktop/stage/sb-libusb0/") ))
 (require :sb-libusb0)
 
 #+nil
