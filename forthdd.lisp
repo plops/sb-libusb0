@@ -27,18 +27,20 @@
 (defparameter *handle* nil)
 
 #+nil
-(defparameter *handle* (usbint::usb-open 
-			(car (get-devices-by-ids :vendor-id #x19ec :product-id #x0300))))
+(progn
+  (defparameter *handle* (usbint::usb-open 
+			  (car (get-devices-by-ids :vendor-id #x19ec :product-id #x0300))))
+  (when (sb-alien:null-alien *handle*)
+    (break "error: forthdd device is probably not connected"))
+  ;; i need to call set-configuration according to Downloads/libusbwin32_documentation.html
+  (defparameter *conf* (usbint::set-configuration* *handle* 1))
+  (defparameter *intf* (usbint::claim-interface :handle *handle* :interface 0)))
+
+
 
 #+nil
 (usbint::usb-close *handle*)
 
-;; i need to call set-configuration according to Downloads/libusbwin32_documentation.html
-#+nil
-(defparameter *conf* (usbint::set-configuration* *handle* 1))
-
-#+nil 
-(defparameter *intf* (usbint::claim-interface :handle *handle* :interface 0))
 
 (defun forthdd-write (data)
   (with-ep #x04
@@ -57,7 +59,7 @@
 (defun checksum (a &optional (n (length a)))
   (declare (type (simple-array (unsigned-byte 8) 1) a))
   (let ((r 0))
-    (dotimes (i n)
+   (dotimes (i n)
       (incf r (aref a i))
       (when (< 255 r)
 	(decf r 255)))
@@ -115,9 +117,11 @@
     a))
 
 (defun pkg-grab (blocknum32)
+  ;; fetch one page from flash into ram
   (pkg-grab-or-burn (char-code #\G) blocknum32))
 
 (defun pkg-burn (blocknum32)
+  ;; write one page of data from forthdd controlers ram into flash
   (pkg-grab-or-burn (char-code #\B) blocknum32))
 
 (defun pkg-call (function &optional data)
@@ -152,6 +156,12 @@
 (progn ;; get number of bitplanes
   (forthdd-talk #x17))
 #+nil
+(progn ;; get number of ro
+  (forthdd-talk #x20))
+#+nil
+(progn ;; get selected ro
+  (forthdd-talk #x21))
+#+nil
 (progn ;; get default ro
   (forthdd-talk #x22))
 ;; image 41 is default
@@ -170,7 +180,13 @@
 
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '(22)))
+  (forthdd-talk #x23 '(1)))
+
+#+nil
+(dotimes (i 10)
+ (loop for i below 40 do
+      (sleep .3)
+      (forthdd-talk #x23 (list i))))
 
 #+nil
 (defparameter *resp* (forthdd-read 1024))
@@ -233,11 +249,21 @@
     (#x39 display-temp)
     (#x3b get-serial-num)))
 
-(defconstant +EXT-FLASH-BASE+ #x01000000)
+(defconstant +EXT-FLASH-BASE+ #x01000000) ;; first page
 (defconstant +EXT-FLASH-BUFFER+ #x0400) ;; start of flash buffer in RAM
 (defconstant +EXT-FLASH-PAGE-SIZE+ #x0800)
 
+#+nil
+(time
+ (progn ;; erase all, takes 43s
+   (loop for page from #x01000000 below #x0100f000 by 64 do
+	(check-ack
+	 (erase-block page)))))
+#+nil
+(erase-block #x01000040)
+
 (defun erase-block (blocknum)
+  "Erase the Flash block."
   (declare (type (unsigned-byte 32) blocknum))
   (forthdd-talk 5
 		(loop for i below 32 by 8 collect
@@ -257,6 +283,7 @@
 #+nil
 (erase-bitplane)
 
+
 (defun write-ex (address16 data)
   (declare (type (unsigned-byte 16) address16))
   (forthdd-write (pkg-write address16 data))
@@ -271,6 +298,7 @@
   (declare (type (simple-array unsigned-byte 1) page)
 	   (type (unsigned-byte 32) blocknum32))
   ;; write in chunks of 256 bytes
+  ;; one page in external flash is 2048 bytes (8 packets)
   (dotimes (i 8)
     (write-ex (+ (* i 256) +EXT-FLASH-BUFFER+)
 	      (subseq page 
@@ -315,8 +343,10 @@
 #+nil
 (bitflip #b10001111)
 
+
 (defun create-bitplane (img)
-  (declare (type (simple-array unsigned-byte (1024 1280)) img))
+  (declare (type (simple-array unsigned-byte (1024 1280)) img)
+	   (values (simple-array unsigned-byte (1024 160)) &optional))
   (let* ((w 160)
 	 (h 1024)
 	 (bits (make-array (list h w)
@@ -332,7 +362,9 @@
 (defun write-bitplane (img)
   ;; one bitplane contains 80 pages (smallest write unit) or 1.25
   ;; blocks (smallest erase unit)
-  ;; 1280 x 1024
+  ;; 1280 x 1024 / 8 = 163840 bytes
+  ;; 1 page = 2048 bytes
+  ;; 1 block = 131072 bytes
   (declare (type (simple-array unsigned-byte (1024 160)) img))
   (let* ((img1 (sb-ext:array-storage-vector img))
 	 (n (length img1))
@@ -342,6 +374,27 @@
 		  (subseq img1
 			  (* i p)
 			  (* (1+ i) p))))))
+
+#+nil
+(progn ;; write some 8pixel stripes
+ (let* ((w 160)
+	(h 1024)
+	(a (make-array (list h w) :element-type 'unsigned-byte)))
+   (dotimes (j h)
+     (dotimes (i w)
+       (if (oddp (floor j 64))
+	   (when (oddp i)
+	     (setf (aref a j i) #xff))
+	   (setf (aref a j i) #xaa))))
+   (write-bitplane a)))
+
+#+nil
+(progn ;; write white image
+  (let* ((a (make-array '(1024 160)
+			:element-type 'unsigned-byte
+			:initial-element #xff)))
+    (write-bitplane a)))
+
 #+nil
 (erase-bitplane)
 #+nil
