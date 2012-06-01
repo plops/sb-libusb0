@@ -342,22 +342,6 @@
 ;; bytes: 152 153 154 .. 8 9 10 11 12 13 14 15 0 1 2 3 4 5 6 7
 ;; bits: ... 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
 
-(defun bitflip (b)
-  ;; http://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64BitsDiv
-  (declare (type unsigned-byte b)
-	   (values unsigned-byte &optional))
-  (let ((spread #x0202020202)
-	(select #x010884422010))
-    (declare (type (unsigned-byte 64) spread select))
-    (mod (logand (* b spread)
-		 select)
-	 1023)))
-#+nil
-(bitflip #b0000111)
-#+nil
-(bitflip #b10001111)
-
-
 (defun create-bitplane (img)
   (declare (type (simple-array (unsigned-byte 8) (1024 1280)) img)
 	   (values (simple-array (unsigned-byte 8) (1024 160)) &optional))
@@ -407,16 +391,6 @@
    (write-bitplane a)))
 
 #+nil
-(forthdd-talk #x29)
-#+nil
-(forthdd-talk #x23 '(0))
-#+nil
-(progn ;;deactivate
-  (forthdd-talk #x28))
-#+nil
-(progn ;;activate
-  (forthdd-talk #x27))
-#+nil
 (progn ;; write white image
   (let* ((a (make-array '(1024 160)
 			:element-type '(unsigned-byte 8)
@@ -441,17 +415,36 @@
    (write-bitplane (create-bitplane a)
 		   :image-number 0)))
 ;; after uploading a bitplane, issue reload-repertoir rpc call
-
-(progn ;;deactivate
+#+nil
+(progn
+ (progn ;;deactivate
    (forthdd-talk #x28))
+ (progn ;; reload repertoir
+   (forthdd-talk #x29))
+ (progn ;;activate
+   (forthdd-talk #x27))
+ (progn ;; switch image/running order
+   (forthdd-talk #x23 '(0))))
+
+#+nil
+(progn ;;deactivate
+  (forthdd-talk #x28))
+#+nil
 (progn ;; reload repertoir
   (forthdd-talk #x29))
+#+nil
 (progn ;;activate
   (forthdd-talk #x27))
-(progn ;; switch image/running order
-  (forthdd-talk #x23 '(1)))
+#+nil
 (progn ;; switch image/running order
   (forthdd-talk #x23 '(0)))
+
+#+nil
+(progn ;; switch image/running order
+  (forthdd-talk #x23 '(5)))
+#+nil
+(progn ;; switch image/running order
+  (forthdd-talk #x23 '(1)))
 
 ;; nr-n.pdf
 
@@ -576,21 +569,20 @@
   (draw-quad-box 1 	 
 		 :ox (floor (- 1280 512) 2)
 		 :oy (floor (- 1024 512) 2))))
-
-(defparameter *bla*
- (draw-quad-box 1 	 
-		:ox (floor (- 1280 512) 2)
-		:oy (floor (- 1024 512) 2)))
 #+nil
-(total-boxes 2)
+(total-boxes 3)
+
+
 
 #+nil 
-(loop for i below 4 do ;; erase 4 blocks for 5 images
-     (erase-block (+ (* i #x40) +EXT-FLASH-BASE+)))
+(time
+ (loop for i below (* 4 (ceiling (total-boxes 3) 4)) do
+    ;; erase 4 blocks for 5 images
+      (erase-block (+ (* i #x40) +EXT-FLASH-BASE+))))
 
 #+nil
-(time ;; 10s
- (loop for i below 5 do
+(time ;; 10s for 5, 41s for 21 images
+ (loop for i below (total-boxes 3) do
       (write-bitplane 
        (create-bitplane
 	(draw-quad-box (1+ i) 	 
