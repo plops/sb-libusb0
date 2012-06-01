@@ -40,8 +40,6 @@
   (defparameter *conf* (usbint::set-configuration* *handle* 1))
   (defparameter *intf* (usbint::claim-interface :handle *handle* :interface 0)))
 
-
-
 #+nil
 (usbint::usb-close *handle*)
 
@@ -187,13 +185,13 @@
 
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '(0)))
+  (forthdd-talk #x23 '()))
 
 #+nil
 (dotimes (i 10)
  (loop for i below 40 do
       (sleep .3)
-      (forthdd-talk #x23 (list i))))
+      (forthdd-talk #x23 (list (random 21)))))
 
 #+nil
 (defparameter *resp* (forthdd-read 1024))
@@ -436,15 +434,17 @@
 (progn ;;activate
   (forthdd-talk #x27))
 #+nil
-(progn ;; switch image/running order
-  (forthdd-talk #x23 '(0)))
+(dotimes (i 21)
+  (sleep .1)
+ (progn ;; switch image/running order
+   (forthdd-talk #x23 (list i))))
 
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '(5)))
+  (forthdd-talk #x23 '(17)))
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '(1)))
+  (forthdd-talk #x23 '(0)))
 
 ;; nr-n.pdf
 
@@ -494,7 +494,7 @@
 (circle-in-box-p .1d0 #C(.5d0 .5d0) #C(0d0 0d0) #C(1d0 1d0))
 
 (defparameter *blo* #C(0d0 0))
-(defparameter *bscale* #C(512d0 512))
+(defparameter *bscale* #C(1000d0 1000))
 
 (defun .* (a b)
   (declare (type (complex double-float) a b))
@@ -572,11 +572,13 @@
 #+nil
 (total-boxes 3)
 
-
+#+nil
+(* 4
+ (ceiling (total-boxes 3) 5))
 
 #+nil 
 (time
- (loop for i below (* 4 (ceiling (total-boxes 3) 4)) do
+ (loop for i below (* 4 (ceiling (total-boxes 3) 5)) do
     ;; erase 4 blocks for 5 images
       (erase-block (+ (* i #x40) +EXT-FLASH-BASE+))))
 
@@ -586,5 +588,6 @@
       (write-bitplane 
        (create-bitplane
 	(draw-quad-box (1+ i) 	 
-		       :ox (floor (- 1280 512) 2)
-		       :oy (floor (- 1024 512) 2))))))
+		       :ox (floor (- 1280 1000) 2)
+		       :oy (floor (- 1024 1000) 2)))
+       :image-number i)))
