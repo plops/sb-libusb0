@@ -305,7 +305,7 @@
   (check-ack (forthdd-read 1024)))
 
 (defun write-page (blocknum32 page)
-  (declare (type (simple-array unsigned-byte 1) page)
+  (declare (type (simple-array (unsigned-byte 8) 1) page)
 	   (type (unsigned-byte 32) blocknum32))
   ;; write in chunks of 256 bytes
   ;; one page in external flash is 2048 bytes (8 packets)
@@ -318,12 +318,12 @@
 
 #+nil
 (forthdd-write (pkg-write (+ (* 0 256) +EXT-FLASH-BUFFER+)
-			  (make-array 256 :element-type 'unsigned-byte)))
+			  (make-array 256 :element-type '(unsigned-byte 8))))
 #+nil
 (forthdd-read 1024)
 #+nil
 (pkg-write (+ (* 0 256) +EXT-FLASH-BUFFER+)
-	   (make-array 256 :element-type 'unsigned-byte))
+	   (make-array 256 :element-type '(unsigned-byte 8)))
 
 ;; from 0x01 00 00 00 there are 960 blocks for images (120 MB)
 ;; from 0x01 00 F1 00 there are 60 blocks for more data (7.5 MB)
@@ -355,12 +355,12 @@
 
 
 (defun create-bitplane (img)
-  (declare (type (simple-array unsigned-byte (1024 1280)) img)
-	   (values (simple-array unsigned-byte (1024 160)) &optional))
+  (declare (type (simple-array (unsigned-byte 8) (1024 1280)) img)
+	   (values (simple-array (unsigned-byte 8) (1024 160)) &optional))
   (let* ((w 160)
 	 (h 1024)
 	 (bits (make-array (list h w)
-			   :element-type 'unsigned-byte)))
+			   :element-type '(unsigned-byte 8))))
     (dotimes (j h)
       (dotimes (i w)
 	(dotimes (k 8)
@@ -372,10 +372,11 @@
 (defun write-bitplane (img)
   ;; one bitplane contains 80 pages (smallest write unit) or 1.25
   ;; blocks (smallest erase unit)
+  ;; 5 images are stored in 4 blocks
   ;; 1280 x 1024 / 8 = 163840 bytes
   ;; 1 page = 2048 bytes
   ;; 1 block = 131072 bytes
-  (declare (type (simple-array unsigned-byte (1024 160)) img))
+  (declare (type (simple-array (unsigned-byte 8) (1024 160)) img))
   (let* ((img1 (sb-ext:array-storage-vector img))
 	 (n (length img1))
 	 (p +EXT-FLASH-PAGE-SIZE+))
@@ -389,7 +390,7 @@
 (progn ;; write some 8pixel stripes
  (let* ((w 160)
 	(h 1024)
-	(a (make-array (list h w) :element-type 'unsigned-byte)))
+	(a (make-array (list h w) :element-type '(unsigned-byte 8))))
    (dotimes (j h)
      (dotimes (i w)
        (when (oddp i)
@@ -409,7 +410,7 @@
 #+nil
 (progn ;; write white image
   (let* ((a (make-array '(1024 160)
-			:element-type 'unsigned-byte
+			:element-type '(unsigned-byte 8)
 			:initial-element #xff)))
     (write-bitplane a)))
 
@@ -421,7 +422,7 @@
 	(w 1280)
 	(a 
 	 (make-array (list h w)
-		     :element-type 'unsigned-byte)))
+		     :element-type '(unsigned-byte 8))))
    (dotimes (i w)
      (dotimes (j h)
        (let ((r (sqrt (+ (expt (- i (floor w 2)) 2)
@@ -430,3 +431,136 @@
 	   (setf (aref a j i) 1)))))
    (write-bitplane (create-bitplane a))))
 ;; after uploading a bitplane, issue reload-repertoir rpc call
+
+
+
+;; nr-n.pdf
+
+(defun mother (k)
+  (declare (type (integer 2) k))
+  (floor (+ k 2) 4))
+
+(defun left-daughter (k)
+  (declare (type (integer 1) k))
+  (+ (* 4 k) -2))
+
+(defun right-daughter (k)
+  (declare (type (integer 1) k))
+  (+ (* 4 k) 1))
+
+(defun which-daughter (k)
+  (declare (type (integer 2) k)
+	   (values (integer 0 3) &optional))
+  (mod (+ 2 k) 4))
+
+(defun total-boxes (level)
+  (declare (type (integer 1) level))
+  (/ (1- (expt 4 level))
+     3))
+
+#+nil
+(list
+  (loop for i from 1 below 6 collect (list i (total-boxes i)))
+  (= 6 (mother 25))
+  (= 22 (left-daughter 6))
+  (= 25 (right-daughter 6))
+  (= 5 (total-boxes 2))
+  (= (+ 1 4 (* 4 4)) (total-boxes 3))
+  (and (= 0 (which-daughter 2))
+       (= 0 (which-daughter 6))
+       (= 2 (which-daughter 84))))
+
+(defun circle-in-box-p (radius center lo hi)
+  (declare (type (complex double-float) center lo hi)
+	   (type (double-float 0d0) radius))
+  (not (or (< (- (realpart center) radius) (realpart lo))
+	   (< (realpart hi) (+ (realpart center) radius))
+	   (< (- (imagpart center) radius) (imagpart lo))
+	   (< (imagpart hi) (+ (imagpart center) radius)))))
+
+#+nil
+(circle-in-box-p .1d0 #C(.5d0 .5d0) #C(0d0 0d0) #C(1d0 1d0))
+
+(defparameter *blo* #C(0d0 0))
+(defparameter *bscale* #C(512d0 512))
+
+(defun .* (a b)
+  (declare (type (complex double-float) a b))
+  (complex (* (realpart a) (realpart b))
+	   (* (imagpart a) (imagpart b))))
+
+
+(defun get-box (k)
+  (let ((offset (complex 0d0))
+	(del 1d0)
+	(kb 0))
+    (loop while (< 1 k) do
+	 (setf kb (which-daughter k))
+	 (incf offset
+	  (ecase kb
+	    (0 0)
+	    (1 (complex del))
+	    (2 (complex 0d0 del))
+	    (3 (complex del del))))
+	 (setf k (mother k)
+	       del (* del 2)))
+    (let ((lo (+ *blo* (* (/ del) (.* *bscale* offset))))
+	  (hi (+ *blo* (* (/ del) (.* *bscale*
+				      (+ offset (complex 1d0 1d0)))))))
+      (values lo hi))))
+
+#+nil
+(get-box 1)
+
+(defun box-containing-circle (radius center &optional (level 4))
+  "find smallest box, that contains the circle"
+  (declare (type (complex double-float) center)
+	   (type double-float radius)
+	   (type integer level))
+  (let ((kl 1)
+	(kr 1)
+	(k 1)
+	(ks 1))
+    (loop for p from 2 upto level do
+	 (setf kl (left-daughter ks)
+	       kr (right-daughter ks))
+	 (loop for k from kl upto kr do ;; do any daughters contain circle ?
+	      (multiple-value-bind (lo hi) (get-box k)
+		(when (circle-in-box-p radius center lo hi)
+		  (setf ks k)
+		  (return)))) ;; return from immediatly enclosing loop
+	 (when (< kr k) ;; no, discontinue
+	   (return)))
+    ks))
+#+nil
+(box-containing-circle 1d0 (complex 122d0 122))
+
+(defun draw-quad-box (k &key (w 1280) (h 1024) (ox 0) (oy 0))
+ (multiple-value-bind (lo hi)
+     (get-box k)
+   (let* ((sx (+ ox (floor (realpart lo)))) 
+	  (sy (+ oy (floor (imagpart lo)))) 
+	  (ex (+ ox (floor (realpart hi))))
+	  (ey (+ oy (floor (imagpart hi))))
+	  (a (make-array (list h w) :element-type '(unsigned-byte 8))))
+     (loop for i from sx below ex do
+	  (loop for j from sy below ey do
+	       (setf (aref a j i) 255)))
+     a)))
+
+#+nil
+(draw-quad-box 1)
+
+#+nil
+(write-bitplane 
+ (create-bitplane
+  (draw-quad-box 1 	 
+		 :ox (floor (- 1280 512) 2)
+		 :oy (floor (- 1024 512) 2))))
+
+(defparameter *bla*
+ (draw-quad-box 1 	 
+		:ox (floor (- 1280 512) 2)
+		:oy (floor (- 1024 512) 2)))
+#+nil
+(total-boxes 2)
