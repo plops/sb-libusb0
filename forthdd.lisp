@@ -16,6 +16,8 @@
 ;; /home/martin/wxga-forthdd/AN0005AA\ RS232\ Control\ Protocol\ for\ SXGA-R3\ Systems_0.pdf
 ;; if i had a graphics card, that is triggered with the camera, the dvi display should work
 ;; from-uffz/pdfs2/Downloads/forthdd/AN0015AA_RS-232_Control_Protocol_for_SXGA-3DM_Systems_0.pdf
+;; some docs on how an image is encoded
+;; xpdf '/home/martin/from-uffz/pdfs2/Downloads/forthdd/AN0020AA_MetroLib_(Rev_D_onwards).pdf'
 
 #+nil
 (usbint::get-product-id (car (get-devices-by-ids)))
@@ -284,11 +286,13 @@
   (unless (eq 'ack (slave-package pkg))
     (break "error, device didnt acknowledge: ~a" pkg)))
 
-(defun erase-bitplane ()
+(defun erase-bitplane (&optional (image-number 0))
   (check-ack
-   (erase-block +EXT-FLASH-BASE+))
+   (erase-block (+ (* image-number #x40)
+		   +EXT-FLASH-BASE+)))
   (check-ack
-   (erase-block (+ #x40 +EXT-FLASH-BASE+))))
+   (erase-block (+ (* (1+ image-number) #x40) 
+		   +EXT-FLASH-BASE+))))
 
 #+nil
 (erase-bitplane)
@@ -362,14 +366,19 @@
 	 (bits (make-array (list h w)
 			   :element-type '(unsigned-byte 8))))
     (dotimes (j h)
-      (dotimes (i w)
-	(dotimes (k 8)
-	  (setf (ldb (byte 1 k) (aref bits j i))
-		(if (= 0 (aref img j (+ k (* 8 i))))
-		    0 1)))))
+      (dotimes (ii 20)
+	(dotimes (i 8)
+	  (let ((iii (+ i (* 8 ii)))
+		(iii2 (+ (- 7 i) (* 8 ii))))
+	    (dotimes (k 8)
+	      (setf (ldb (byte 1 k) (aref bits j iii))
+		    (if (= 0 (aref img j (+ k (* 8 iii2))))
+			  0 1)))))))
     bits))
 
-(defun write-bitplane (img)
+
+
+(defun write-bitplane (img &key (image-number 0))
   ;; one bitplane contains 80 pages (smallest write unit) or 1.25
   ;; blocks (smallest erase unit)
   ;; 5 images are stored in 4 blocks
@@ -381,7 +390,7 @@
 	 (n (length img1))
 	 (p +EXT-FLASH-PAGE-SIZE+))
     (dotimes (i (floor n p))
-      (write-page (+ i +EXT-FLASH-BASE+)
+      (write-page (+ i (* 80 image-number) +EXT-FLASH-BASE+)
 		  (subseq img1
 			  (* i p)
 			  (* (1+ i) p))))))
@@ -415,7 +424,7 @@
     (write-bitplane a)))
 
 #+nil
-(erase-bitplane)
+(erase-bitplane 0)
 #+nil
 (time 
  (let* ((h 1024)
@@ -429,10 +438,20 @@
 			 (expt (- j (floor h 2)) 2)))))
 	 (when (< r 400)
 	   (setf (aref a j i) 1)))))
-   (write-bitplane (create-bitplane a))))
+   (write-bitplane (create-bitplane a)
+		   :image-number 0)))
 ;; after uploading a bitplane, issue reload-repertoir rpc call
 
-
+(progn ;;deactivate
+   (forthdd-talk #x28))
+(progn ;; reload repertoir
+  (forthdd-talk #x29))
+(progn ;;activate
+  (forthdd-talk #x27))
+(progn ;; switch image/running order
+  (forthdd-talk #x23 '(1)))
+(progn ;; switch image/running order
+  (forthdd-talk #x23 '(0)))
 
 ;; nr-n.pdf
 
@@ -564,3 +583,16 @@
 		:oy (floor (- 1024 512) 2)))
 #+nil
 (total-boxes 2)
+
+#+nil 
+(loop for i below 4 do ;; erase 4 blocks for 5 images
+     (erase-block (+ (* i #x40) +EXT-FLASH-BASE+)))
+
+#+nil
+(time ;; 10s
+ (loop for i below 5 do
+      (write-bitplane 
+       (create-bitplane
+	(draw-quad-box (1+ i) 	 
+		       :ox (floor (- 1280 512) 2)
+		       :oy (floor (- 1024 512) 2))))))
