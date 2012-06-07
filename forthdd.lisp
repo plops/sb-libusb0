@@ -185,7 +185,7 @@
 
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '(8)))
+  (forthdd-talk #x23 '(39)))
 
 #+nil
 (dotimes (i 10)
@@ -434,7 +434,7 @@
 (progn ;;activate
   (forthdd-talk #x27))
 #+nil
-(dotimes (i 21)
+(dotimes (i 40)
   (sleep .3)
  (progn ;; switch image/running order
    (forthdd-talk #x23 (list i))))
@@ -444,7 +444,7 @@
   (forthdd-talk #x23 '(19)))
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '(0)))
+  (forthdd-talk #x23 '(3)))
 
 ;; nr-n.pdf
 
@@ -587,6 +587,28 @@
 		  (setf (aref a i j) 255))))
     a))
 
+(defun draw-grating-x (&key (w 1280) (h 1024) (period 2))
+  (let ((a (make-array (list h w) :element-type '(unsigned-byte 8))))
+    (dotimes (i w)
+      (dotimes (j h)
+	(setf (aref a j i) (if (< (mod i period) (floor period 2))
+			       255
+			       0))))
+    a))
+
+(defun draw-checker (&key (w 1280) (h 1024) (period 2))
+  (let ((a (make-array (list h w) :element-type '(unsigned-byte 8))))
+    (dotimes (i w)
+      (dotimes (j h)
+	(setf (aref a j i) 
+	      (if (and (< (mod (+ (floor i period) (floor j period)) 2) 
+			  1))
+		  255 0))))
+    a))
+
+#+nil
+(draw-checker :w 8 :h 8 :period 1)
+
 #+nil
 (write-bitplane 
  (create-bitplane
@@ -652,3 +674,13 @@
 
 ;; vertical edges 5..9 are visible 500..900 px
 ;; horizontal edges 15..19 are visible 500..900 px
+
+
+#+nil
+(time
+ (loop for i below 40 do
+      (format t "~d~%" i)
+      (write-bitplane
+       (create-bitplane
+	(draw-grating-x :period (+ 2 i)))
+       :image-number i)))
