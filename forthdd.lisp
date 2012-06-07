@@ -185,13 +185,13 @@
 
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '(0)))
+  (forthdd-talk #x23 '(8)))
 
 #+nil
 (dotimes (i 10)
  (loop for i below 40 do
       (sleep .3)
-      (forthdd-talk #x23 (list (random 21)))))
+      (forthdd-talk #x23 (list (random 36)))))
 
 #+nil
 (defparameter *resp* (forthdd-read 1024))
@@ -435,13 +435,13 @@
   (forthdd-talk #x27))
 #+nil
 (dotimes (i 21)
-  (sleep .1)
+  (sleep .3)
  (progn ;; switch image/running order
    (forthdd-talk #x23 (list i))))
 
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '(17)))
+  (forthdd-talk #x23 '(19)))
 #+nil
 (progn ;; switch image/running order
   (forthdd-talk #x23 '(0)))
@@ -574,7 +574,17 @@
 	      (let ((r2 (+ (expt (- j y) 2d0)
 			   (expt (- i x) 2d0))))
 		(when (<= r2 rad2)
-		  (setf (aref a j i) 1)))))
+		  (setf (aref a j i) 255)))))
+    a))
+
+(defun draw-half-plane (&key (w 1280) (h 1024) 
+			(x t) (pos (floor w 2)))
+  (let ((a (make-array (list h w) :element-type '(unsigned-byte 8))))
+    (loop for j from 0 below h do
+	 (loop for i from 0 below pos do
+	      (if x 
+		  (setf (aref a j i) 255)
+		  (setf (aref a i j) 255))))
     a))
 
 #+nil
@@ -598,6 +608,7 @@
 (time
  (loop for i below (* 4 (ceiling 40 5)) do
     ;; erase 4 blocks for 5 images
+      (format t "~d~%" i)
       (erase-block (+ (* i #x40) +EXT-FLASH-BASE+))))
 
 #+nil
@@ -623,3 +634,21 @@
 			  :y (+ 400 (* 100 j)))))
 	    :image-number (+ (* 6 i) j)))))
 
+#+nil
+(time ;; 71.5s for 20 images
+ (progn
+   (loop for i below 10 do
+	(format t "~d~%" i)
+	(write-bitplane
+	 (create-bitplane
+	  (draw-half-plane :x t :pos (* 100 i)))
+	 :image-number i))
+   (loop for i below 10 do
+	(format t "~d~%" (+ 10 i))
+       (write-bitplane
+	(create-bitplane
+	 (draw-half-plane :x nil :pos (* 100 i)))
+	:image-number (+ 10 i)))))
+
+;; vertical edges 5..9 are visible
+;; horizontal edges 15..19 are visible
