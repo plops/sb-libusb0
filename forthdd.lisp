@@ -185,7 +185,7 @@
 
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '()))
+  (forthdd-talk #x23 '(0)))
 
 #+nil
 (dotimes (i 10)
@@ -563,6 +563,20 @@
 #+nil
 (draw-quad-box 1)
 
+(defun draw-disk (rad &key (w 1280) (h 1024) 
+		  (x (floor w 2)) (y (floor h 2)))
+  (declare (type double-float rad))
+  (let ((a (make-array (list h w) :element-type '(unsigned-byte 8)))
+	(rad2 (expt rad 2))
+	(crad (ceiling rad)))
+    (loop for j from (- y crad) upto (+ y crad) do
+	 (loop for i from (- x crad) upto (+ x crad) do
+	      (let ((r2 (+ (expt (- j y) 2d0)
+			   (expt (- i x) 2d0))))
+		(when (<= r2 rad2)
+		  (setf (aref a j i) 1)))))
+    a))
+
 #+nil
 (write-bitplane 
  (create-bitplane
@@ -576,9 +590,13 @@
 (* 4
  (ceiling (total-boxes 3) 5))
 
+#+nil
+(* 4
+ (ceiling 40 5))
+
 #+nil 
 (time
- (loop for i below (* 4 (ceiling (total-boxes 3) 5)) do
+ (loop for i below (* 4 (ceiling 40 5)) do
     ;; erase 4 blocks for 5 images
       (erase-block (+ (* i #x40) +EXT-FLASH-BASE+))))
 
@@ -587,7 +605,21 @@
  (loop for i below (total-boxes 3) do
       (write-bitplane 
        (create-bitplane
-	(draw-quad-box (1+ i) 	 
+	(draw-quad-box (1+ i) 
 		       :ox (floor (- 1280 1000) 2)
 		       :oy (floor (- 1024 1000) 2)))
        :image-number i)))
+
+#+nil
+(time ;; 71.5s for 36 images
+ (loop for i below 6 do
+      (loop for j below 6 do
+	   (write-bitplane 
+	    (create-bitplane
+	     (let ((w 1280)
+		   (h 1024))
+	       (draw-disk 6d0 :w w :h h 
+			  :x (+ 600 (* 100 i))
+			  :y (+ 400 (* 100 j)))))
+	    :image-number (+ (* 6 i) j)))))
+
