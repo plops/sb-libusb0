@@ -635,20 +635,20 @@
 	    :image-number (+ (* 6 i) j)))))
 
 #+nil
-(time ;; 71.5s for 20 images
+(time ;; 78.5s for 40 images
  (progn
-   (loop for i below 10 do
+   (loop for i below 20 do
 	(format t "~d~%" i)
 	(write-bitplane
 	 (create-bitplane
-	  (draw-half-plane :x t :pos (* 100 i)))
+	  (draw-half-plane :x t :pos (+ 500 (* 20 i))))
 	 :image-number i))
-   (loop for i below 10 do
-	(format t "~d~%" (+ 10 i))
+   (loop for i below 20 do
+	(format t "~d~%" (+ 20 i))
        (write-bitplane
 	(create-bitplane
-	 (draw-half-plane :x nil :pos (* 100 i)))
-	:image-number (+ 10 i)))))
+	 (draw-half-plane :x nil :pos (+ 500 (* 20 i))))
+	:image-number (+ 20 i)))))
 
-;; vertical edges 5..9 are visible
-;; horizontal edges 15..19 are visible
+;; vertical edges 5..9 are visible 500..900 px
+;; horizontal edges 15..19 are visible 500..900 px
