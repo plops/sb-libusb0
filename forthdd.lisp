@@ -185,7 +185,13 @@
 
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '(39)))
+  (forthdd-talk #x23 '(10)))
+#+nil
+(dotimes (i 100)
+  (sleep .1)
+  (format t "~d~%" i)
+  (progn ;; switch image/running order
+    (forthdd-talk #x23 (list i))))
 
 #+nil
 (dotimes (i 10)
@@ -196,7 +202,7 @@
 #+nil
 (defparameter *resp* (forthdd-read 1024))
 
-#+nil
+#+nil ;; timestamp
 (map 'string #'code-char (forthdd-talk 2))
 
 ;; => "rTue Jan  5 10:20:15 2010
@@ -434,7 +440,7 @@
 (progn ;;activate
   (forthdd-talk #x27))
 #+nil
-(dotimes (i 40)
+(dotimes (i 103)
   (sleep .3)
  (progn ;; switch image/running order
    (forthdd-talk #x23 (list i))))
@@ -444,7 +450,7 @@
   (forthdd-talk #x23 '(19)))
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '(3)))
+  (forthdd-talk #x23 '(0)))
 
 ;; nr-n.pdf
 
@@ -566,7 +572,8 @@
 (defun draw-disk (rad &key (w 1280) (h 1024) 
 		  (x (floor w 2)) (y (floor h 2)))
   (declare (type double-float rad))
-  (let ((a (make-array (list h w) :element-type '(unsigned-byte 8)))
+  (let ((a (make-array (list h w) :element-type '(unsigned-byte 8)
+		       :initial-element 0))
 	(rad2 (expt rad 2))
 	(crad (ceiling rad)))
     (loop for j from (- y crad) upto (+ y crad) do
@@ -628,7 +635,7 @@
 
 #+nil 
 (time
- (loop for i below (* 4 (ceiling 40 5)) do
+ (loop for i from 0 below (* 4 (ceiling 500 5)) do
     ;; erase 4 blocks for 5 images
       (format t "~d~%" i)
       (erase-block (+ (* i #x40) +EXT-FLASH-BASE+))))
@@ -644,17 +651,30 @@
        :image-number i)))
 
 #+nil
-(time ;; 71.5s for 36 images
- (loop for i below 6 do
-      (loop for j below 6 do
-	   (write-bitplane 
-	    (create-bitplane
-	     (let ((w 1280)
-		   (h 1024))
-	       (draw-disk 6d0 :w w :h h 
-			  :x (+ 600 (* 100 i))
-			  :y (+ 400 (* 100 j)))))
-	    :image-number (+ (* 6 i) j)))))
+(time ;; 71.5s for 36 images ;; 385s for 14x14 images ;; 196.6s for 10x10
+ (progn
+   (loop for i below 10 do
+	(loop for j below 10 do
+	     (write-bitplane 
+	      (create-bitplane
+	       (let ((w 1280)
+		     (h 1024))
+		 (format t "~a~%" (list j i))
+		 (draw-disk 12d0 :w w :h h 
+			    :x (+ 400 (* 50 i))
+			    :y (+ 500 (* 50 j)))))
+	      :image-number (+ (* 10 i) j))))
+   (progn
+     (write-bitplane (create-bitplane (draw-disk 125d0 
+						 :x 650 :y 700))
+		     :image-number 100)
+     (write-bitplane (create-bitplane (draw-disk 64d0 
+						 :x 650 :y 700))
+		     :image-number 101)
+     (write-bitplane (create-bitplane (draw-disk 32d0
+						 :x 650 :y 700))
+		     :image-number 101))))
+
 
 #+nil
 (time ;; 78.5s for 40 images
@@ -682,5 +702,5 @@
       (format t "~d~%" i)
       (write-bitplane
        (create-bitplane
-	(draw-grating-x :period (+ 2 i)))
+	(draw-checker :period (+ 1 i)))
        :image-number i)))
