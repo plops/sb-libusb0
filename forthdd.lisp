@@ -2,9 +2,9 @@
 (eval-when (:compile-toplevel :execute :load-toplevel)
  #-win64 (push "~/stage/sb-libusb0/" asdf:*central-registry*)
  #+win64 (setf asdf:*central-registry* 
-	       '("c:/Users/martin/Desktop/stage/sb-libusb0/") )
+	       '("c:/Users/martin/stage/sb-libusb0/") )
  #+win32 (setf asdf:*central-registry* 
-	       '("c:/Users/martin/Desktop/stage/sb-libusb0/") ))
+	       '("c:/Users/martin/stage/sb-libusb0/") ))
 (require :sb-libusb0)
 ;(asdf:oos 'asdf:compile-op :sb-libusb0 :verbose t)
 (defpackage :forthdd
