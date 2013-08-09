@@ -8,7 +8,9 @@
    :get-devices-by-ids
    :with-ep
    :bulk-write
-   :bulk-read))
+   :bulk-read
+   :control-msg
+   *current-handle*))
 
 (defpackage :sb-libusb0
   (:export)

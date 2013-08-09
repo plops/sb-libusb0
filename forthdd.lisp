@@ -1,11 +1,10 @@
 #+nil
 (eval-when (:compile-toplevel :execute :load-toplevel)
- #-win64 (push "~/stage/sb-libusb0/" asdf:*central-registry*)
- #+win64 (setf asdf:*central-registry* 
-	       '("c:/Users/martin/stage/sb-libusb0/") )
- #+win32 (setf asdf:*central-registry* 
-	       '("c:/Users/martin/stage/sb-libusb0/") ))
+ #-win32 (push "~/stage/sb-libusb0/" asdf:*central-registry*)
+ #+(and x86-64 win32) (setf asdf:*central-registry* 
+		  '("c:/Users/martin/Desktop/stage/sb-libusb0/")))
 (require :sb-libusb0)
+;; c:/Users/martin/AppData/Local/common-lisp/cache/sbcl-1.0.55.7.mswinmt.1185-d20ec0c-win-x64/c/Users/martin/Desktop/stage/sb-libusb0
 ;(asdf:oos 'asdf:compile-op :sb-libusb0 :verbose t)
 (defpackage :forthdd
   (:use :cl :sb-libusb0-internal))
@@ -19,12 +18,15 @@
 ;; some docs on how an image is encoded
 ;; xpdf '/home/martin/from-uffz/pdfs2/Downloads/forthdd/AN0020AA_MetroLib_(Rev_D_onwards).pdf'
 
-#+nil
+#+nil 
 (usbint::get-product-id (car (get-devices-by-ids)))
 #+nil
 (usbint::ensure-libusb0-initialized)
 #+nil
-(usbint::get-devices)
+(defparameter *devs*
+ (usbint::get-devices))
+#+nil
+(usbint::get-vendor-id (elt *devs* 0))
 #+nil
 (get-devices-by-ids :vendor-id #x19ec :product-id #x0300)
 
@@ -32,8 +34,12 @@
 
 #+nil
 (progn
-  (defparameter *handle* (usbint::usb-open 
-			  (car (get-devices-by-ids :vendor-id #x19ec :product-id #x0300))))
+  (let ((forthdd-controller 
+	 (get-devices-by-ids :vendor-id #x19ec :product-id #x0300)))
+    (unless forthdd-controller
+      (break "error: can't find forthdd device. check that it is connected, that windows driver signatures are disabled and grovel used the right compiler."))
+    (defparameter *handle* (usbint::usb-open 
+			    (car (get-devices-by-ids :vendor-id #x19ec :product-id #x0300)))))
   (when (sb-alien:null-alien *handle*)
     (break "error: forthdd device is probably not connected"))
   ;; i need to call set-configuration according to Downloads/libusbwin32_documentation.html
@@ -185,7 +191,7 @@
 
 #+nil
 (progn ;; switch image/running order
-  (forthdd-talk #x23 '(10)))
+  (forthdd-talk #x23 '(104)))
 #+nil
 (dotimes (i 100)
   (sleep .1)
@@ -428,7 +434,7 @@
  (progn ;;activate
    (forthdd-talk #x27))
  (progn ;; switch image/running order
-   (forthdd-talk #x23 '(0))))
+   (forthdd-talk #x23 '(106))))
 
 #+nil
 (progn ;;deactivate
@@ -603,6 +609,15 @@
 			       0))))
     a))
 
+(defun draw-grating-y (&key (w 1280) (h 1024) (period 2))
+  (let ((a (make-array (list h w) :element-type '(unsigned-byte 8))))
+    (dotimes (i w)
+      (dotimes (j h)
+	(setf (aref a j i) (if (< (mod j period) (floor period 2))
+			       255
+			       0))))
+    a))
+
 (defun draw-checker (&key (w 1280) (h 1024) (period 2))
   (let ((a (make-array (list h w) :element-type '(unsigned-byte 8))))
     (dotimes (i w)
@@ -653,7 +668,7 @@
 #+nil
 (time ;; 71.5s for 36 images ;; 385s for 14x14 images ;; 196.6s for 10x10
  (progn
-   (loop for i below 10 do
+   #+nil (loop for i below 10 do
 	(loop for j below 10 do
 	     (write-bitplane 
 	      (create-bitplane
@@ -673,8 +688,23 @@
 		     :image-number 101)
      (write-bitplane (create-bitplane (draw-disk 32d0
 						 :x 650 :y 700))
-		     :image-number 101))))
+		     :image-number 102)
+     (write-bitplane (create-bitplane (draw-grating-x :period 2))
+		     :image-number 103)
+     (write-bitplane (create-bitplane (draw-grating-x :period 4))
+		     :image-number 104)
+     (write-bitplane (create-bitplane (draw-grating-x :period 8))
+		     :image-number 105)
+     (write-bitplane (create-bitplane (draw-grating-y :period 2))
+		     :image-number 106)
+     (write-bitplane (create-bitplane (draw-grating-y :period 4))
+		     :image-number 107)
+     (write-bitplane (create-bitplane (draw-grating-y :period 8))
+		     :image-number 108))))
 
+#+nil
+(progn ;; switch image/running order
+  (forthdd-talk #x23 '(108)))
 
 #+nil
 (time ;; 78.5s for 40 images

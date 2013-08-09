@@ -9,15 +9,16 @@
 (defmacro check (&body body)
   `(let ((val (progn ,@body)))
      (if (< val 0)
-	 (error (format nil "libusb error: ~a returned ~a" ',@body val))
+	 (error (format nil "libusb error: ~a returned ~a" ',@body 
+			(if (= val -116) 'transfer-timed-out val)))
 	 val)))
 
 (defun ensure-libusb0-initialized ()
   (unless *libusb0-initialized*
     (setf *libusb0-shared-object* 
-	  #-win32 (sb-alien:load-shared-object "libusb.so")
-	  #+win64 (sb-alien:load-shared-object "C:/Users/martin/Downloads/libusb-win32-bin-1.2.6.0/libusb-win32-bin-1.2.6.0/bin/amd64/libusb0.dll")
-	  #+win32 (sb-alien:load-shared-object "C:/Users/martin/Downloads/libusb-win32-bin-1.2.6.0/libusb-win32-bin-1.2.6.0/bin/x86/libusb0_x86.dll"))
+	  #+linux (sb-alien:load-shared-object "libusb.so")
+	  #+(and x86-64 win32) (sb-alien:load-shared-object "C:/Users/martin/Downloads/libusb-win32-bin-1.2.6.0/bin/amd64/libusb0.dll")
+	  #+(and (not x86-64) win32) (sb-alien:load-shared-object "C:/Users/martin/Downloads/libusb-win32-bin-1.2.6.0/bin/x86/libusb0_x86.dll"))
     (init*)
     (setf *libusb0-initialized* t))
   (list (check (find-busses*))
@@ -164,3 +165,31 @@
 	    (format t "libusb: couldn't read all data len=~d bytes-to-read=~d.~%"
 		    len bytes-to-read)
 	    (subseq data 0 len))))))
+
+(defun control-msg (data &key (handle *current-handle*)
+			   request-type request value (index 1)
+			   (timeout_ms 1000))
+  (declare (type (or null (simple-array (unsigned-byte 8) 1)) data))
+  (let ((len 
+	 (if data
+	     (sb-sys:with-pinned-objects (data)
+	       (check (control-msg* handle 
+			      request-type
+			      request
+			      value
+			      index
+			      (sb-sys:vector-sap data)
+			      (length data)
+			      timeout_ms)))
+	     (check (control-msg* handle 
+			    request-type
+			    request
+			    value
+			    index
+			    (sb-sys:int-sap 0)
+			    0 
+			    timeout_ms)))
+	  )
+	)
+    len))
+

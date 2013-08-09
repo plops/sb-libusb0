@@ -1,10 +1,14 @@
 ;;; -*- Lisp -*- - well, that's stretching a point.  code=data != data=code
 
 ;;; first, the headers necessary to find definitions of everything
-#-win32 ("usb.h")
-#+win32 ("C:/Users/martin/Downloads/libusb-win32-bin-1.2.6.0/libusb-win32-bin-1.2.6.0/include/lusb0_usb.h")
+#+linux ("usb.h")
+#+win32 ("C:/Users/martin/Downloads/libusb-win32-bin-1.2.6.0/include/lusb0_usb.h")
 ;;; then the stuff we're looking for
-((:structure device-descriptor 
+((:integer USB_REQUEST_TYPE_VENDOR "USB_REQUEST_TYPE_VENDOR" "" t)
+ (:integer USB_RECIPIENT_DEVICE "USB_RECIPIENT_DEVICE" "" t)
+ (:integer USB_ENDPOINT_OUT "USB_ENDPOINT_OUT" "" t)
+
+ (:structure device-descriptor 
  	     ("struct usb_device_descriptor"
  	      (unsigned id-vendor "u_int16_t" "idVendor")
  	      (unsigned id-product "u_int16_t" "idProduct")))
@@ -50,5 +54,14 @@
 					  (endpoint int)
 					  (bytes (* sb-alien:char))
 					  (size int)
-					  (timeout_ms int))))
+					  (timeout_ms int)))
+ (:function control-msg* ("usb_control_msg" int
+					    (handle phandle)
+					    (request-type int)
+					    (request int)
+					    (value int)
+					    (index int)
+					    (bytes (* sb-alien:char))
+					    (size int)
+					    (timeout_ms int))))
 
