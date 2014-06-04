@@ -40,6 +40,10 @@
  (:function claim-interface* ("usb_claim_interface" int 
 						    (handle phandle) 
 						    (interface int)))
+ (:function detach-kernel-driver-np*
+	    ("usb_detach_kernel_driver_np" int 
+					   (handle phandle) 
+					   (interface int)))
  (:function release-interface* ("usb_release_interface" int
 							(handle phandle) 
 							(interface int)))

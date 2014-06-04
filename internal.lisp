@@ -16,7 +16,7 @@
 (defun ensure-libusb0-initialized ()
   (unless *libusb0-initialized*
     (setf *libusb0-shared-object* 
-	  #+linux (sb-alien:load-shared-object "libusb.so")
+	  #+linux (sb-alien:load-shared-object "libusb-0.1.so.4")
 	  #+(and x86-64 win32) (sb-alien:load-shared-object "C:/Users/martin/Downloads/libusb-win32-bin-1.2.6.0/bin/amd64/libusb0.dll")
 	  #+(and (not x86-64) win32) (sb-alien:load-shared-object "C:/Users/martin/Downloads/libusb-win32-bin-1.2.6.0/bin/x86/libusb0_x86.dll"))
     (init*)
@@ -97,6 +97,7 @@
 
 (defun usb-open (&optional (dev *current-device*))
   "Returns handle"
+  (assert dev)
   (open* dev))
 
 (defun usb-close (&optional (handle *current-handle*))
@@ -114,6 +115,12 @@
   (declare (type fixnum interface))
   (check
     (claim-interface* handle interface)))
+
+(defun detach-kernel-driver-np (&key (handle *current-handle*)
+				  (interface *current-interface*))
+  (declare (type fixnum interface))
+  (check
+    (detach-kernel-driver-np* handle interface)))
 
 (defun release-interface (&key (handle *current-handle*) (interface *current-interface*))
   (declare (type fixnum interface))

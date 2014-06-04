@@ -2,15 +2,16 @@
   (:nicknames :usbint)
   (:use :cl :sb-alien)
   (:export
-   :with-usb-open
-   :with-claimed-interface
-   :ensure-libusb0-initialized
-   :get-devices-by-ids
-   :with-ep
-   :bulk-write
-   :bulk-read
-   :control-msg
-   *current-handle*))
+   #:with-usb-open
+   #:with-claimed-interface
+   #:ensure-libusb0-initialized
+   #:get-devices-by-ids
+   #:with-ep
+   #:bulk-write
+   #:bulk-read
+   #:control-msg
+   *current-handle*
+   #:detach-kernel-driver-np))
 
 (defpackage :sb-libusb0
   (:export)
