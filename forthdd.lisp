@@ -1,6 +1,7 @@
+(require :asdf)
 #+nil
 (eval-when (:compile-toplevel :execute :load-toplevel)
- #-win32 (push "~/stage/sb-libusb0/" asdf:*central-registry*)
+ #-win32 (push "/home/martin/stage/sb-libusb0/" asdf:*central-registry*)
  #+(and x86-64 win32) (setf asdf:*central-registry* 
 			    '("c:/Users/martin/Desktop/stage/sb-libusb0/")))
 (require :sb-libusb0)
@@ -28,7 +29,7 @@
 #+nil
 (usbint::get-vendor-id (elt *devs* 0))
 #+nil
-(get-devices-by-ids :vendor-id #x19ec :product-id #x0301)
+(get-devices-by-ids :vendor-id #x19ec :product-id #x0300a)
 
 (defparameter *handle* nil)
 
@@ -41,12 +42,15 @@
 #+nil
 (defparameter *conf* (usbint::set-configuration* *handle* 1))
 #+nil
+(usbint:detach-kernel-driver-np :handle *handle* :interface 0)
+
+#+nil
 (defparameter *intf* (usbint::claim-interface :handle *handle* :interface 0))
 
 #+nil
 (progn
   (let ((forthdd-controller 
-	 (get-devices-by-ids :vendor-id #x19ec :product-id #x0301)))
+	 (get-devices-by-ids :vendor-id #x19ec :product-id #x0300)))
     (unless forthdd-controller
       (break "error: can't find forthdd device. check that it is connected, that windows driver signatures are disabled and grovel used the right compiler."))
     (defparameter *handle* (usbint::usb-open 
